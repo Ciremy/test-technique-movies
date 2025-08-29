@@ -34,3 +34,44 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Justifications liées au contraintes
+
+Choix de Conception du Schéma Neo4j
+
+1. Modèle Person + Rôles (vs. Actor/Director séparés)
+
+Un seul type de nœud Person avec des relations typées (ACTED_IN, DIRECTED) pour représenter les rôles.
+Avantages :
+
+Flexibilité : Une même personne peut avoir plusieurs rôles (ex. : acteur ET réalisateur).
+Simplicité : Moins de types de nœuds et pas de duplication.
+Extensibilité : Facile d’ajouter de nouveaux rôles (ex. : PRODUCED).
+
+2. Déduplication et Idempotence
+
+Contraintes d’unicité :
+
+unique_movie_tmdbId et unique_person_tmdbId pour éviter les doublons.
+
+Utilisation de MERGE :
+
+Garantit que les nœuds/relations ne sont créés qu’une seule fois.
+
+Résultat : Le script peut être relancé sans créer de doublons.
+
+3. Gestion des Multi-Rôles
+
+Relations typées :
+
+Une Person peut avoir plusieurs relations vers des Movie (ex. : ACTED_IN, DIRECTED).
+
+4. Index et Contraintes
+
+Contraintes :
+
+unique_movie_tmdbId et unique_person_tmdbId pour garantir l’unicité.
+
+Index full-text :
+
+movieTitleIndex et personNameIndex pour des recherches rapides.
