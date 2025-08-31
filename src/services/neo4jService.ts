@@ -57,7 +57,6 @@ export async function getMovieDetails(id: string): Promise<MovieDetails> {
     const movie = record.get("movie").properties;
     const director = record.get("director");
 
-    // Filtrer les genres vides ou null
     const genres = record
       .get("genres")
       .filter((genre: string) => genre && genre.trim() !== "")
@@ -115,6 +114,98 @@ export async function getPersonDetails(id: string): Promise<PersonDetails> {
       name: person.name,
       filmography: record.get("filmography") || [],
     };
+  } finally {
+    await session.close();
+  }
+}
+
+export async function getContextForLLM(
+  type: "movie" | "person",
+  id: string
+): Promise<string> {
+  const session = driver.session();
+  try {
+    let context = "";
+
+    if (type === "movie") {
+      const result = await session.run(
+        `
+        MATCH (m:Movie {tmdbId: toInteger($id)})
+        OPTIONAL MATCH (m)-[:IN_GENRE]->(g:Genre)
+        OPTIONAL MATCH (m)<-[:ACTED_IN]-(a:Person)
+        OPTIONAL MATCH (m)<-[:DIRECTED]-(d:Person)
+        RETURN
+          m.title AS title,
+          m.release_date AS releaseDate,
+          m.overview AS overview,
+          collect(DISTINCT g.name) AS genres,
+          d.name AS directorName,
+          collect(DISTINCT a.name) AS cast
+        `,
+        { id }
+      );
+
+      if (result.records.length === 0) {
+        throw new Error(`Film avec l'ID ${id} non trouvé`);
+      }
+
+      const record = result.records[0];
+      const title = record.get("title");
+      const releaseDate = record.get("releaseDate");
+      const overview = record.get("overview");
+      const genres = record.get("genres");
+      const directorName = record.get("directorName");
+      const cast = record.get("cast");
+
+      context = `
+        Titre: ${title}
+        Date de sortie: ${releaseDate}
+        Réalisateur: ${directorName || "Inconnu"}
+        Genres: ${genres.join(", ") || "Aucun"}
+        Acteurs principaux: ${cast.join(", ") || "Aucun"}
+        Synopsis: ${overview || "Aucun synopsis disponible"}
+      `;
+    } else {
+      // Pour une personne
+      const result = await session.run(
+        `
+        MATCH (p:Person {tmdbId: toInteger($id)})
+        OPTIONAL MATCH (p)-[r:ACTED_IN|DIRECTED]->(m:Movie)
+        RETURN
+          p.name AS name,
+          collect({
+            title: m.title,
+            role: type(r),
+            year: m.release_date,
+            character: r.character
+          }) AS filmography
+        `,
+        { id }
+      );
+
+      if (result.records.length === 0) {
+        throw new Error(`Personne avec l'ID ${id} non trouvée`);
+      }
+
+      const record = result.records[0];
+      const name = record.get("name");
+      const filmography = record.get("filmography");
+
+      context = `
+        Nom: ${name}
+        Filmographie:
+        ${filmography
+          .map(
+            (item: any) =>
+              `- ${item.title} (${item.year}) : ${
+                item.role === "ACTED_IN" ? "Acteur" : "Réalisateur"
+              }${item.character ? ` (rôle: ${item.character})` : ""}`
+          )
+          .join("\n")}
+      `;
+    }
+
+    return context.trim();
   } finally {
     await session.close();
   }

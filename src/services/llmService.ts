@@ -1,91 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+import { Mistral } from "@mistralai/mistralai";
 
-## Getting Started
+export async function generateArticle(
+  context: string,
+  type: "movie" | "person"
+): Promise<string> {
+  if (!process.env.LLM_API_KEY) {
+    throw new Error("Clé API Mistral manquante (LLM_API_KEY)");
+  }
 
-First, run the development server:
+  const client = new Mistral({ apiKey: process.env.LLM_API_KEY });
+  const prompt = getOptimizedPrompt(context, type);
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+  try {
+    const response = await client.chat.complete({
+      model: "mistral-tiny",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.5,
+    });
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    const firstChoice = response.choices[0];
+    if (!firstChoice?.message?.content) {
+      throw new Error("Réponse vide du LLM");
+    }
+    let content = "";
+    if (typeof firstChoice.message.content === "string") {
+      content = firstChoice.message.content;
+    } else if (Array.isArray(firstChoice.message.content)) {
+      content = firstChoice.message.content
+        .filter(
+          (chunk): chunk is { type: "text"; text: string } =>
+            chunk.type === "text"
+        )
+        .map((chunk) => chunk.text)
+        .join("");
+    } else {
+      throw new Error("Format de réponse non supporté");
+    }
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+    if (!content.trim()) {
+      throw new Error("Aucun contenu textuel valide généré");
+    }
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+    return content.trim();
+  } catch (error) {
+    console.error("[LLM Error]:", error);
+    throw new Error(
+      error instanceof Error
+        ? `Erreur LLM: ${error.message}`
+        : "Erreur inconnue lors de la génération"
+    );
+  }
+}
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Justifications liées au contraintes Neo4j
-
-Choix de Conception du Schéma Neo4j
-
-1. Modèle Person + Rôles (vs. Actor/Director séparés)
-
-Un seul type de nœud Person avec des relations typées (ACTED_IN, DIRECTED) pour représenter les rôles.
-Avantages :
-
-Flexibilité : Une même personne peut avoir plusieurs rôles (ex. : acteur ET réalisateur).
-Simplicité : Moins de types de nœuds et pas de duplication.
-Extensibilité : Facile d’ajouter de nouveaux rôles (ex. : PRODUCED).
-
-2. Déduplication et Idempotence
-
-Contraintes d’unicité :
-
-unique_movie_tmdbId et unique_person_tmdbId pour éviter les doublons.
-
-Utilisation de MERGE :
-
-Garantit que les nœuds/relations ne sont créés qu’une seule fois.
-
-Résultat : Le script peut être relancé sans créer de doublons.
-
-3. Gestion des Multi-Rôles
-
-Relations typées :
-
-Une Person peut avoir plusieurs relations vers des Movie (ex. : ACTED_IN, DIRECTED).
-
-4. Index et Contraintes
-
-Contraintes :
-
-unique_movie_tmdbId et unique_person_tmdbId pour garantir l’unicité.
-
-Index full-text :
-
-movieTitleIndex et personNameIndex pour des recherches rapides.
-
-## Prompt et Logique de Contexte
-
-**Base du prompt** :
-
-```text
+function getOptimizedPrompt(context: string, type: "movie" | "person"): string {
+  const baseInstructions = `
       Rédige un article EN FRANÇAIS (200-400 mots) avec cette structure PRÉCISE :
       1. Introduction concise (1 paragraphe)
       2. Développement avec intertitres clairs (►)
       3. Conclusion synthétique (1 paragraphe)
-
+  
       CONSIGNES STRICTES :
       - Ton : professionnel, informatif et neutre (évite les superlatifs)
       - Style : phrases courtes (max 20 mots), vocabulaire accessible
@@ -94,73 +72,74 @@ movieTitleIndex et personNameIndex pour des recherches rapides.
       - Contenu : 100% factuel, basé UNIQUEMENT sur le contexte fourni
       - Interdictions : AUCUN spoiler, AUCUN jugement subjectif, AUCUNE comparaison non demandée
       - Mise en forme : sauts de ligne entre sections, intertitres en gras (►)
-```
+    `;
 
-### Prompts Optimisés
-
-**Pour les films** :
-
-```text
-    STRUCTURE EXACTE À SUIVRE :
+  if (type === "movie") {
+    return `
+        ${baseInstructions}
+  
+        CONTEXTE FILM :
+        ${context}
+  
+        STRUCTURE EXACTE À SUIVRE :
         1. Introduction :
         - Présente le film (titre complet, année, réalisateur)
         - Accroche : en 1 phrase, pourquoi ce film est notable
         - Exemple : "Sorti en [année], [titre], réalisé par [nom], revisite [genre] avec [particularité]."
-
+  
         2. ► Synopsis (sans spoiler) :
         - Résume l'intrigue principale EN 3 PHRASES MAXIMUM
         - Décris l'ambiance/le ton (ex: "un thriller psychologique angoissant")
         - Mentionne le genre et le public cible
-
+  
         3. ► Réalisation et technique :
         - Style visuel (ex: "plans serrés", "couleurs saturées")
         - Particularités techniques (effets spéciaux, musique, etc.)
         - 1 exemple concret si pertinent
-
+  
         4. ► Distribution :
         - Acteurs principaux (2-3 max) + leurs rôles
         - Mention spéciale si performance marquante
-
+  
         5. ► Thèmes (si pertinent) :
         - 1-2 thèmes universels abordés (ex: "la quête d'identité")
         - Formulation : "Le film explore [thème] à travers [élément]"
-
+  
         6. Conclusion :
         - Bilan en 2 phrases : points forts + public concerné
         - Formulation type : "[Titre] séduit par [qualité1] et [qualité2], idéal pour les amateurs de [genre]."
-```
-
-**Pour les personnalités** :
-
-```text
-    STRUCTURE EXACTE À SUIVRE :
+      `;
+  } else {
+    return `
+        ${baseInstructions}
+  
+        CONTEXTE PERSONNALITÉ :
+        ${context}
+  
+        STRUCTURE EXACTE À SUIVRE :
         1. Introduction :
         - Nom complet, domaine (acteur/réalisateur), année de naissance si pertinente
         - Accroche : "Connu(e) pour [réalisation majeure], [nom] a marqué [industrie] par [contribution]."
-
+  
         2. ► Parcours professionnel :
         - Débuts (formation, premier rôle/projet marquant)
         - Percée (projet qui a fait connaître, année)
         - Évolution de carrière (changements de style, diversifications)
-
+  
         3. ► Style et spécialités :
         - 2-3 caractéristiques distinctives (ex: "rôles de personnages tourmentés")
         - Genre de prédilection si applicable
-
+  
         4. ► Projets récents (2020-présent) :
         - 2-3 projets majeurs avec années
         - Orientation actuelle (ex: "se tourne vers les films indépendants")
-
+  
         5. ► Reconnaissance :
         - Récompenses majeures (1-2 max)
         - Influence sur le cinéma (ex: "a redéfini [genre]")
-
+  
         6. Conclusion :
         - Synthèse de l'impact : "Avec [réalisation1] et [réalisation2], [nom] reste une figure [adjectif] de [domaine]."
-```
-
-## Choix du LLM et Limitation
-
-- **Fournisseur** : Mistral AI
-- **Modèle** : `mistral-tiny`
-- **Limitation** : 1 requête par seconde maximum
+      `;
+  }
+}
