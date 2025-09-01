@@ -1,5 +1,10 @@
 import driver from "../lib/neo4j";
-import { SearchResult, MovieDetails, PersonDetails } from "../lib/types";
+import {
+  SearchResult,
+  MovieDetails,
+  PersonDetails,
+  PersonFilmography,
+} from "../lib/types";
 
 export async function searchEntities(
   query: string,
@@ -93,26 +98,44 @@ export async function getPersonDetails(id: string): Promise<PersonDetails> {
       OPTIONAL MATCH (p)-[r:ACTED_IN|DIRECTED]->(m:Movie)
       RETURN p AS person,
              collect({
-               id: m.tmdbId,
-               title: m.title,
+               movie: m,
                role: type(r),
                character: r.character
              }) AS filmography
       `,
       { id }
     );
-
     if (result.records.length === 0) {
       throw new Error(`Personne avec l'ID ${id} non trouvée`);
     }
-
     const record = result.records[0];
     const person = record.get("person").properties;
+    const rawFilmography = record.get("filmography") || [];
+    const filmography: PersonFilmography[] = rawFilmography.map((item: any) => {
+      const movie = item.movie.properties;
+      return {
+        movie: {
+          id: movie.tmdbId.toString(),
+          title: movie.title,
+          original_title: movie.original_title,
+          release_date: movie.release_date,
+          overview: movie.overview,
+          vote_average: movie.vote_average,
+          poster_path: movie.poster_path,
+          genres: [],
+          cast: [],
+          director: undefined,
+        },
+        role: item.role as "ACTED_IN" | "DIRECTED",
+        character: item.character,
+      };
+    });
 
     return {
       id: person.tmdbId.toString(),
       name: person.name,
-      filmography: record.get("filmography") || [],
+      profile_path: person.profile_path,
+      filmography: filmography,
     };
   } finally {
     await session.close();
