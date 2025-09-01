@@ -1,12 +1,3 @@
-export type SearchResult = {
-  id: string;
-  title?: string;
-  name?: string;
-  type: "movie" | "person";
-  poster_path?: string;
-  profile_path?: string;
-};
-
 export type MovieDetails = {
   id: string;
   title: string;
@@ -20,15 +11,26 @@ export type MovieDetails = {
   director?: { id: string; name: string };
 };
 
+export type PersonFilmography = {
+  movie: MovieDetails;
+  role: "ACTED_IN" | "DIRECTED";
+  character?: string;
+};
+
 export type PersonDetails = {
   id: string;
   name: string;
-  filmography: Array<{
-    id: string;
-    title: string;
-    role: "ACTED_IN" | "DIRECTED";
-    character?: string;
-  }>;
+  profile_path?: string;
+  filmography: Array<PersonFilmography>;
+};
+
+export type SearchResult = {
+  id: string;
+  title?: string;
+  name?: string;
+  type: "movie" | "person";
+  poster_path?: string;
+  profile_path?: string;
 };
 
 export type GenerateRequest = {
