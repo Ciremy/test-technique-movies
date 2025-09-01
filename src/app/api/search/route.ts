@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { searchEntities } from "../../../services/neo4jService";
-import { SearchResult } from "../../../lib/types";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -8,20 +7,14 @@ export async function GET(request: Request) {
   const type = searchParams.get("type");
 
   if (!q || !type || !["movie", "person"].includes(type)) {
-    return NextResponse.json(
-      { error: "Paramètres invalides" },
-      { status: 400 }
-    );
+    return NextResponse.json([], { status: 200 });
   }
 
   try {
     const results = await searchEntities(q, type as "movie" | "person");
-    return NextResponse.json(results);
+    return NextResponse.json(Array.isArray(results) ? results : []);
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "Erreur lors de la recherche" },
-      { status: 500 }
-    );
+    return NextResponse.json([], { status: 500 });
   }
 }

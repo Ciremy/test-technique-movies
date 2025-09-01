@@ -166,7 +166,6 @@ export async function getContextForLLM(
         Synopsis: ${overview || "Aucun synopsis disponible"}
       `;
     } else {
-      // Pour une personne
       const result = await session.run(
         `
         MATCH (p:Person {tmdbId: toInteger($id)})
