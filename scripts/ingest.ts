@@ -77,7 +77,7 @@ async function resetNeo4jDatabase(): Promise<void> {
 async function fetchPopularMovies(): Promise<TMDBMovie[]> {
   const apiKey = process.env.TMDB_API_KEY;
   const movies: TMDBMovie[] = [];
-  for (let page = 1; page <= 10; page++) {
+  for (let page = 1; page <= 20; page++) {
     const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=fr-FR&page=${page}`;
     const response = await axios.get(url);
     movies.push(...response.data.results);
