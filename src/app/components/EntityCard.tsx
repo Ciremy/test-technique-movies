@@ -26,7 +26,7 @@ export function EntityCard({ entity }: { entity: Entity }) {
           <img
             src={
               entity.filmography
-                ? `https://image.tmdb.org/t/p/w500${entity.filmography}`
+                ? `https://image.tmdb.org/t/p/w500${entity.profile_path}`
                 : "/person-placeholder.jpg"
             }
             alt={entity.name}

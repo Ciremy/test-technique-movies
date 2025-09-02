@@ -20,6 +20,7 @@ type TMDBPerson = {
   name: string;
   job?: string;
   character?: string;
+  profile_path?: string;
 };
 
 type TMDBCredits = {
@@ -113,21 +114,20 @@ async function ingestMovieIntoNeo4j(movie: TMDBMovie): Promise<void> {
           m.overview = $overview,
           m.vote_average = $voteAverage,
           m.poster_path = $posterPath
-
       FOREACH (genre IN $genres |
         MERGE (g:Genre {name: genre.name})
         MERGE (m)-[:IN_GENRE]->(g)
       )
-
       WITH m
       MERGE (dir:Person {tmdbId: $directorId})
-      SET dir.name = $directorName
+      SET dir.name = $directorName,
+          dir.profile_path = $directorProfilePath
       MERGE (dir)-[:DIRECTED]->(m)
-
       WITH m
       UNWIND $cast AS actor
       MERGE (a:Person {tmdbId: actor.id})
-      SET a.name = actor.name
+      SET a.name = actor.name,
+          a.profile_path = actor.profile_path
       MERGE (a)-[:ACTED_IN {role: actor.character}]->(m)
     `;
 
@@ -142,15 +142,17 @@ async function ingestMovieIntoNeo4j(movie: TMDBMovie): Promise<void> {
       genres: movieDetails.genres || [],
       directorId: director?.id,
       directorName: director?.name,
+      directorProfilePath: director?.profile_path,
       cast: credits.cast.map((actor: TMDBPerson) => ({
         id: actor.id,
         name: actor.name,
         character: actor.character,
+        profile_path: actor.profile_path,
       })),
     });
-    console.log(`Movie ingest : ${movieDetails.title}`);
+    console.log(`Movie ingested: ${movieDetails.title}`);
   } catch (error) {
-    console.error(`Error while ingesting the movie : ${movie.title}:`, error);
+    console.error(`Error while ingesting the movie: ${movie.title}:`, error);
   } finally {
     await session.close();
   }
