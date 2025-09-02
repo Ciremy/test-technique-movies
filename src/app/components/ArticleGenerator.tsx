@@ -107,8 +107,6 @@ export function ArticleGenerator({
           "Générer l'article"
         )}
       </button>
-
-      {/* Affichage des erreurs */}
       {error && (
         <div className="p-3 bg-red-100 text-red-700 rounded-md">
           <div className="flex items-center">
