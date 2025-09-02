@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Générateur d'articles cinéma",
   description: "Recherchez des films et personnalités",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
