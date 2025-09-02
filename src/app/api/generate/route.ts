@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Paramètres invalides. 'type' doit être 'movie' ou 'person' et 'id' est requis.",
+            "Invalid parameters. 'type' must be 'movie' or 'person' and 'id' is required.",
         },
         { status: 400 }
       );
@@ -25,19 +25,19 @@ export async function POST(request: Request) {
     console.error("[GENERATE ERROR]:", error);
 
     if (error instanceof Error) {
-      if (error.message.includes("non trouvé")) {
+      if (error.message.includes("Tot found")) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       } else if (error.message.includes("Timeout")) {
         return NextResponse.json({ error: error.message }, { status: 504 });
-      } else if (error.message.includes("Limite")) {
+      } else if (error.message.includes("Limit")) {
         return NextResponse.json({ error: error.message }, { status: 429 });
-      } else if (error.message.includes("Erreur LLM")) {
+      } else if (error.message.includes("Error LLM")) {
         return NextResponse.json({ error: error.message }, { status: 502 });
       }
     }
 
     return NextResponse.json(
-      { error: "Erreur interne lors de la génération" },
+      { error: "Internal error during generation" },
       { status: 500 }
     );
   }

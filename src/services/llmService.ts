@@ -5,7 +5,7 @@ export async function generateArticle(
   type: "movie" | "person"
 ): Promise<string> {
   if (!process.env.LLM_API_KEY) {
-    throw new Error("Clé API Mistral manquante (LLM_API_KEY)");
+    throw new Error("Missing Mistral API KEY (LLM_API_KEY)");
   }
 
   const client = new Mistral({ apiKey: process.env.LLM_API_KEY });
@@ -25,7 +25,7 @@ export async function generateArticle(
 
     const firstChoice = response.choices[0];
     if (!firstChoice?.message?.content) {
-      throw new Error("Réponse vide du LLM");
+      throw new Error("Empty LLM response");
     }
     let content = "";
     if (typeof firstChoice.message.content === "string") {
@@ -39,11 +39,11 @@ export async function generateArticle(
         .map((chunk) => chunk.text)
         .join("");
     } else {
-      throw new Error("Format de réponse non supporté");
+      throw new Error("Unsupported response format");
     }
 
     if (!content.trim()) {
-      throw new Error("Aucun contenu textuel valide généré");
+      throw new Error("No valid text content generated");
     }
 
     return content.trim();
@@ -51,8 +51,8 @@ export async function generateArticle(
     console.error("[LLM Error]:", error);
     throw new Error(
       error instanceof Error
-        ? `Erreur LLM: ${error.message}`
-        : "Erreur inconnue lors de la génération"
+        ? `LLM error : ${error.message}`
+        : "Unknown error while generating"
     );
   }
 }

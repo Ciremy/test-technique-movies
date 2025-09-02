@@ -33,7 +33,7 @@ export function ArticleGenerator({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erreur lors de la génération");
+        throw new Error(errorData.error || "Error while generating");
       }
 
       const data = await response.json();
@@ -41,9 +41,7 @@ export function ArticleGenerator({
     } catch (err) {
       console.error("Generation error:", err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "Erreur inconnue lors de la génération"
+        err instanceof Error ? err.message : "Unknown error while generating"
       );
     } finally {
       setIsLoading(false);
@@ -130,8 +128,6 @@ export function ArticleGenerator({
           </div>
         </div>
       )}
-
-      {/* Affichage de l'article */}
       {article && (
         <div className="prose max-w-none bg-gray-50 p-6 rounded-lg border border-gray-200">
           <ReactMarkdown>{article}</ReactMarkdown>

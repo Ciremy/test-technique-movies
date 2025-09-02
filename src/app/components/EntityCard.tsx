@@ -6,9 +6,6 @@ type Entity = MovieDetails | PersonDetails;
 
 export function EntityCard({ entity }: { entity: Entity }) {
   const isMovie = "title" in entity;
-
-  console.log(entity);
-
   return (
     <div className="flex flex-col md:flex-row bg-white rounded-xl overflow-hidden shadow-md">
       <div className="md:w-1/3 bg-gray-100 flex items-center justify-center p-4">

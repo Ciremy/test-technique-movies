@@ -38,10 +38,10 @@ async function testNeo4jConnection(): Promise<void> {
     const result = await session.run("MATCH (n) RETURN count(n) AS nodeCount");
     const nodeCount = result.records[0].get("nodeCount").toNumber();
     console.log(
-      `Connexion à Neo4j réussie ! Nombre de nœuds existants : ${nodeCount}`
+      `Neo4j connection successful! Number of existing nodes: ${nodeCount}`
     );
   } catch (error) {
-    console.error("Erreur lors de la connexion à Neo4j :", error);
+    console.error("Error connecting to Neo4j :", error);
   } finally {
     await session.close();
   }
@@ -63,12 +63,9 @@ async function resetNeo4jDatabase(): Promise<void> {
     await session.run(
       "CREATE FULLTEXT INDEX personNameIndex IF NOT EXISTS FOR (p:Person) ON EACH [p.name]"
     );
-    console.log("Base de données réinitialisée avec succès !");
+    console.log("Database successfully reset!");
   } catch (error) {
-    console.error(
-      "Erreur lors de la réinitialisation de la base de données :",
-      error
-    );
+    console.error("Error resetting database:", error);
   } finally {
     await session.close();
   }
@@ -117,19 +114,16 @@ async function ingestMovieIntoNeo4j(movie: TMDBMovie): Promise<void> {
           m.vote_average = $voteAverage,
           m.poster_path = $posterPath
 
-      // Ajouter les genres
       FOREACH (genre IN $genres |
         MERGE (g:Genre {name: genre.name})
         MERGE (m)-[:IN_GENRE]->(g)
       )
 
-      // Ajouter le réalisateur
       WITH m
       MERGE (dir:Person {tmdbId: $directorId})
       SET dir.name = $directorName
       MERGE (dir)-[:DIRECTED]->(m)
 
-      // Ajouter les acteurs
       WITH m
       UNWIND $cast AS actor
       MERGE (a:Person {tmdbId: actor.id})
@@ -154,9 +148,9 @@ async function ingestMovieIntoNeo4j(movie: TMDBMovie): Promise<void> {
         character: actor.character,
       })),
     });
-    console.log(`Film ingéré : ${movieDetails.title}`);
+    console.log(`Movie ingest : ${movieDetails.title}`);
   } catch (error) {
-    console.error(`Erreur lors de l'ingestion du film ${movie.title}:`, error);
+    console.error(`Error while ingesting the movie : ${movie.title}:`, error);
   } finally {
     await session.close();
   }
@@ -167,16 +161,16 @@ async function main(): Promise<void> {
     await testNeo4jConnection();
     await resetNeo4jDatabase();
     const movies = await fetchPopularMovies();
-    console.log(`Nombre total de films récupérés : ${movies.length}`);
+    console.log(`Total number of movies : ${movies.length}`);
     for (let i = 0; i < movies.length; i++) {
       await ingestMovieIntoNeo4j(movies[i]);
       if (i < movies.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
     }
-    console.log("Ingestion terminée !");
+    console.log("Ingestion completed !");
   } catch (error) {
-    console.error("Erreur principale :", error);
+    console.error("Error :", error);
   } finally {
     await driver.close();
   }
