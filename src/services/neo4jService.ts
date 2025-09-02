@@ -47,7 +47,7 @@ export async function getMovieDetails(id: string): Promise<MovieDetails> {
       OPTIONAL MATCH (m)<-[:DIRECTED]-(d:Person)
       RETURN
         m AS movie,
-        collect(DISTINCT g.name) AS genres,  // Ajout de DISTINCT pour éviter les doublons
+        collect(DISTINCT g.name) AS genres,
         collect({id: a.tmdbId, name: a.name, character: a.character}) AS cast,
         d AS director
       `,
@@ -55,7 +55,7 @@ export async function getMovieDetails(id: string): Promise<MovieDetails> {
     );
 
     if (result.records.length === 0) {
-      throw new Error(`Film avec l'ID ${id} non trouvé`);
+      throw new Error(`Movie with ID ${id} not found`);
     }
 
     const record = result.records[0];
@@ -106,7 +106,7 @@ export async function getPersonDetails(id: string): Promise<PersonDetails> {
       { id }
     );
     if (result.records.length === 0) {
-      throw new Error(`Personne avec l'ID ${id} non trouvée`);
+      throw new Error(`Person with ID ${id} not found`);
     }
     const record = result.records[0];
     const person = record.get("person").properties;
@@ -169,7 +169,7 @@ export async function getContextForLLM(
       );
 
       if (result.records.length === 0) {
-        throw new Error(`Film avec l'ID ${id} non trouvé`);
+        throw new Error(`Movie with ID ${id} not found`);
       }
 
       const record = result.records[0];
@@ -206,7 +206,7 @@ export async function getContextForLLM(
       );
 
       if (result.records.length === 0) {
-        throw new Error(`Personne avec l'ID ${id} non trouvée`);
+        throw new Error(`Person with ID ${id} not found`);
       }
 
       const record = result.records[0];

@@ -39,25 +39,19 @@ export function SearchBar() {
         const response = await fetch(`/api/search?${searchParams.toString()}`);
 
         if (!response.ok) {
-          throw new Error(
-            `Erreur ${response.status}: ${await response.text()}`
-          );
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
         }
 
         const data = await response.json();
 
         if (!Array.isArray(data)) {
-          throw new Error("Format de réponse inattendu");
+          throw new Error("Unexpected response format");
         }
 
         setResults(data.slice(0, 5));
       } catch (err) {
         console.error("Search error:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Erreur inconnue lors de la recherche"
-        );
+        setError(err instanceof Error ? err.message : "Search error");
         setResults([]);
       } finally {
         setIsLoading(false);
@@ -112,7 +106,7 @@ export function SearchBar() {
         setResults(combinedResults);
       } catch (err) {
         console.error("Search error:", err);
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
+        setError(err instanceof Error ? err.message : "Unknow error");
         setResults([]);
       } finally {
         setIsLoading(false);

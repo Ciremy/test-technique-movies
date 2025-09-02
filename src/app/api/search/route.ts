@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   if (!id || !type || !["movie", "person"].includes(type)) {
     const errorResponse: ApiError = {
       error:
-        "Paramètres invalides. Veuillez fournir un ID valide et un type (movie/person)",
+        "Invalid parameters. Please provide a valid ID and type (movie/person)",
     };
     return NextResponse.json(errorResponse, { status: 400 });
   }
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
       if (!result || !result.id) {
         const errorResponse: ApiError = {
-          error: `Film avec ID ${id} non trouvé`,
+          error: `Movie with ID ${id} not found`,
         };
         return NextResponse.json(errorResponse, { status: 404 });
       }
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 
       if (!result || !result.id) {
         const errorResponse: ApiError = {
-          error: `Personne avec ID ${id} non trouvée`,
+          error: `Person with ID ${id} not found`,
         };
         return NextResponse.json(errorResponse, { status: 404 });
       }
@@ -43,10 +43,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Erreur dans l'API entities:", error);
+    console.error("Error in the entities API:", error);
 
     if (error instanceof Error) {
-      if (error.message.includes("non trouvé")) {
+      if (error.message.includes("not found")) {
         const errorResponse: ApiError = {
           error: error.message,
         };
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     }
 
     const errorResponse: ApiError = {
-      error: "Erreur interne lors de la récupération des données",
+      error: "Internal error while retrieving data",
     };
     return NextResponse.json(errorResponse, { status: 500 });
   }
