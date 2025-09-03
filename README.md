@@ -218,7 +218,7 @@ This approach provides an optimal balance between query performance, schema simp
 
 ## Prompt et Logique de Contexte
 
-**Base du prompt** :
+**Base prompt** :
 
 ```text
    Rédige un article EN FRANÇAIS (200-400 mots) avec cette structure PRÉCISE :
@@ -236,9 +236,9 @@ This approach provides an optimal balance between query performance, schema simp
    - Mise en forme : sauts de ligne entre sections, intertitres en gras (►)
 ```
 
-### Prompts Optimisés
+### Optimised Prompt
 
-**Pour les films** :
+**Movies** :
 
 ```text
     STRUCTURE EXACTE À SUIVRE :
@@ -270,7 +270,7 @@ This approach provides an optimal balance between query performance, schema simp
         - Formulation type : "[Titre] séduit par [qualité1] et [qualité2], idéal pour les amateurs de [genre]."
 ```
 
-**Pour les personnalités** :
+**Person** :
 
 ```text
     STRUCTURE EXACTE À SUIVRE :
@@ -299,8 +299,8 @@ This approach provides an optimal balance between query performance, schema simp
         - Synthèse de l'impact : "Avec [réalisation1] et [réalisation2], [nom] reste une figure [adjectif] de [domaine]."
 ```
 
-## Choix du LLM et Limitation
+## LLM choice and Limitation
 
-- **Fournisseur** : Mistral AI
-- **Modèle** : `mistral-tiny`
-- **Limitation** : 1 requête par seconde maximum
+- **Provider** : Mistral AI
+- **Model** : `mistral-tiny`
+- **Limitation** : 1 request per seconde maximum
