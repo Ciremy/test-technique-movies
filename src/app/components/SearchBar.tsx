@@ -1,12 +1,11 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 
 interface SearchResult {
   id: string;
-  title: string;
+  title?: string;
   name?: string;
   type: "movie" | "person";
   poster_path?: string;
@@ -28,24 +27,30 @@ export function SearchBar() {
     }
 
     const fetchResults = async () => {
+      if (debouncedQuery.length < 3) {
+        setResults([]);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
+
       try {
         const searchParams = new URLSearchParams({
           q: debouncedQuery,
-          type: "movie",
         });
 
         const response = await fetch(`/api/search?${searchParams.toString()}`);
 
         if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${await response.text()}`);
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Error ${response.status}`);
         }
 
         const data = await response.json();
 
         if (!Array.isArray(data)) {
-          throw new Error("Unexpected response format");
+          throw new Error("Invalid response format");
         }
 
         setResults(data.slice(0, 5));
@@ -58,66 +63,7 @@ export function SearchBar() {
       }
     };
 
-    if (debouncedQuery.length > 2) {
-      fetchResults();
-    } else {
-      setResults([]);
-    }
-  }, [debouncedQuery, router]);
-
-  const searchAll = async (query: string) => {
-    try {
-      const moviesParams = new URLSearchParams({ q: query, type: "movie" });
-      const moviesResponse = await fetch(
-        `/api/search?${moviesParams.toString()}`
-      );
-      const movies = await moviesResponse.json();
-
-      const peopleParams = new URLSearchParams({ q: query, type: "person" });
-      const peopleResponse = await fetch(
-        `/api/search?${peopleParams.toString()}`
-      );
-      const people = await peopleResponse.json();
-
-      const combined = [
-        ...(Array.isArray(movies) ? movies : []),
-        ...(Array.isArray(people) ? people : []),
-      ].slice(0, 5);
-
-      return combined;
-    } catch (err) {
-      console.error("Search all error:", err);
-      return [];
-    }
-  };
-
-  useEffect(() => {
-    if (!debouncedQuery) {
-      setResults([]);
-      setError(null);
-      return;
-    }
-
-    const fetchAllResults = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const combinedResults = await searchAll(debouncedQuery);
-        setResults(combinedResults);
-      } catch (err) {
-        console.error("Search error:", err);
-        setError(err instanceof Error ? err.message : "Unknow error");
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (debouncedQuery.length > 2) {
-      fetchAllResults();
-    } else {
-      setResults([]);
-    }
+    fetchResults();
   }, [debouncedQuery]);
 
   return (
@@ -129,15 +75,12 @@ export function SearchBar() {
         placeholder="Rechercher un film, acteur ou réalisateur..."
         className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-
       {isLoading && <div className="absolute right-2 top-2">🔍</div>}
-
       {error && (
         <div className="absolute z-10 w-full mt-1 p-2 bg-red-100 text-red-700 rounded text-sm">
           ⚠️ {error}
         </div>
       )}
-
       {results.length > 0 && !error && (
         <ul className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-96 overflow-y-auto">
           {results.map((result) => (
@@ -153,7 +96,7 @@ export function SearchBar() {
               {result.poster_path ? (
                 <img
                   src={`https://image.tmdb.org/t/p/w92${result.poster_path}`}
-                  alt={result.title || result.name}
+                  alt={result.title || result.name || "Entity image"}
                   className="w-10 h-14 object-cover mr-2"
                   onError={(e) => {
                     e.currentTarget.src =
