@@ -1,7 +1,5 @@
 # Cinema Article Generator
 
-![Project Logo](https://via.placeholder.com/150) <!-- Remplace par ton logo si disponible -->
-
 A web application to search for movies, actors, and directors, and generate detailed articles using data from [The Movie Database (TMDB)](https://www.themoviedb.org/). Built with Next.js, Neo4j, and TypeScript.
 
 ---
@@ -21,16 +19,6 @@ A web application to search for movies, actors, and directors, and generate deta
 - [Deployment](#deployment)
 - [Contributing](#contributing)
 - [License](#license)
-
----
-
-## Features
-
-✅ Search for movies, actors, and directors
-✅ View detailed information about movies and people
-✅ Generate articles based on cinema data
-✅ Responsive design for all devices
-✅ Data stored in Neo4j for efficient querying
 
 ---
 
@@ -214,19 +202,6 @@ This approach provides an optimal balance between query performance, schema simp
    - One constraint per role node type (`unique_actor_tmdbId`, `unique_director_tmdbId`, etc.).
      **Full-text indexes:**
    - Requires separate indexes for each role node type.
-
----
-
-### **Comparison of Both Approaches**
-
-| Criteria          | Unified Model (Typed Relationships) | Dedicated Role Nodes Approach |
-| ----------------- | ----------------------------------- | ----------------------------- |
-| **Simplicity**    | ✅ Fewer node types                 | ❌ More node types            |
-| **Flexibility**   | ✅ Easy to add new roles            | ❌ Requires new node types    |
-| **Performance**   | ✅ Fewer relationship hops          | ❌ Heavier queries            |
-| **Readability**   | ❌ Roles implicit in relationships  | ✅ Roles explicit as nodes    |
-| **Extensibility** | ✅ Add roles without migration      | ❌ Migration required         |
-| **Maintenance**   | ✅ Simpler code                     | ❌ More complex code          |
 
 ---
 
