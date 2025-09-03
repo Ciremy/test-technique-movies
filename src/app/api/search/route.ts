@@ -1,62 +1,44 @@
 import { NextResponse } from "next/server";
-import {
-  getMovieDetails,
-  getPersonDetails,
-} from "../../../services/neo4jService";
-import { MovieDetails, PersonDetails, ApiError } from "../../../lib/types";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const query = searchParams.get("q");
 
-  const id = searchParams.get("id");
-  const type = searchParams.get("type") as "movie" | "person" | null;
-  if (!id || !type || !["movie", "person"].includes(type)) {
-    const errorResponse: ApiError = {
-      error:
-        "Invalid parameters. Please provide a valid ID and type (movie/person)",
-    };
-    return NextResponse.json(errorResponse, { status: 400 });
+  if (!query || query.length < 3) {
+    return NextResponse.json([], { status: 200 });
   }
 
   try {
-    let result: MovieDetails | PersonDetails;
+    const tmdbResponse = await fetch(
+      `https://api.themoviedb.org/3/search/multi?api_key=${
+        process.env.TMDB_API_KEY
+      }&query=${encodeURIComponent(query)}&language=fr-FR`
+    );
 
-    if (type === "movie") {
-      result = await getMovieDetails(id);
-
-      if (!result || !result.id) {
-        const errorResponse: ApiError = {
-          error: `Movie with ID ${id} not found`,
-        };
-        return NextResponse.json(errorResponse, { status: 404 });
-      }
-    } else {
-      result = await getPersonDetails(id);
-
-      if (!result || !result.id) {
-        const errorResponse: ApiError = {
-          error: `Person with ID ${id} not found`,
-        };
-        return NextResponse.json(errorResponse, { status: 404 });
-      }
+    if (!tmdbResponse.ok) {
+      throw new Error(`TMDB API error: ${tmdbResponse.status}`);
     }
 
-    return NextResponse.json(result);
+    const data = await tmdbResponse.json();
+    const results = data.results
+      .filter(
+        (item: any) =>
+          item.media_type === "movie" || item.media_type === "person"
+      )
+      .map((item: any) => ({
+        id: item.id.toString(),
+        title: item.title,
+        name: item.name,
+        type: item.media_type,
+        poster_path: item.poster_path || item.profile_path,
+      }));
+
+    return NextResponse.json(results);
   } catch (error) {
-    console.error("Error in the entities API:", error);
-
-    if (error instanceof Error) {
-      if (error.message.includes("not found")) {
-        const errorResponse: ApiError = {
-          error: error.message,
-        };
-        return NextResponse.json(errorResponse, { status: 404 });
-      }
-    }
-
-    const errorResponse: ApiError = {
-      error: "Internal error while retrieving data",
-    };
-    return NextResponse.json(errorResponse, { status: 500 });
+    console.error("Search API error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }
