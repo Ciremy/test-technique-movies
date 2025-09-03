@@ -1,44 +1,66 @@
 import { NextResponse } from "next/server";
+import driver from "../../../lib/neo4j";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
 
-  if (!query || query.length < 3) {
+  if (!query || query.length < 2) {
     return NextResponse.json([], { status: 200 });
   }
 
+  const session = driver.session();
+
   try {
-    const tmdbResponse = await fetch(
-      `https://api.themoviedb.org/3/search/multi?api_key=${
-        process.env.TMDB_API_KEY
-      }&query=${encodeURIComponent(query)}&language=fr-FR`
+    const result = await session.run(
+      `
+      MATCH (m:Movie)
+      WHERE toLower(m.title) CONTAINS toLower($searchQuery)
+      RETURN
+        m.tmdbId AS id,
+        m.title AS title,
+        null AS name,
+        "movie" AS type,
+        m.poster_path AS poster_path
+
+      UNION
+
+      MATCH (p:Person)
+      WHERE toLower(p.name) CONTAINS toLower($searchQuery)
+      RETURN
+        p.tmdbId AS id,
+        null AS title,
+        p.name AS name,
+        "person" AS type,
+        p.profile_path AS poster_path
+
+      ORDER BY
+        CASE
+          WHEN type = "movie" THEN title
+          WHEN type = "person" THEN name
+          ELSE ""
+        END
+      LIMIT 10
+    `,
+      { searchQuery: query }
     );
 
-    if (!tmdbResponse.ok) {
-      throw new Error(`TMDB API error: ${tmdbResponse.status}`);
-    }
+    const formattedResults = result.records.map((record) => ({
+      id: record.get("id").toString(),
+      title: record.get("title"),
+      name: record.get("name"),
+      type: record.get("type"),
+      poster_path: record.get("poster_path"),
+    }));
 
-    const data = await tmdbResponse.json();
-    const results = data.results
-      .filter(
-        (item: any) =>
-          item.media_type === "movie" || item.media_type === "person"
-      )
-      .map((item: any) => ({
-        id: item.id.toString(),
-        title: item.title,
-        name: item.name,
-        type: item.media_type,
-        poster_path: item.poster_path || item.profile_path,
-      }));
-
-    return NextResponse.json(results);
+    return NextResponse.json(formattedResults);
   } catch (error) {
-    console.error("Search API error:", error);
+    console.error("Search error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
+  } finally {
+    await session.close();
   }
 }
